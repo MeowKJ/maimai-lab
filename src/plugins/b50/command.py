@@ -4,7 +4,13 @@ import random
 from botpy.message import Message, GroupMessage
 
 
+from maimai_py import MaimaiClient, MaimaiPlates, MaimaiScores, MaimaiSongs, PlayerIdentifier, LXNSProvider, DivingFishProvider
+maimai = MaimaiClient() # 全局创建 MaimaiClient 实例
+divingfish = DivingFishProvider(developer_token="your_token_here")
+lxns = LXNSProvider(developer_token="your_token_here")
+
 from config import LXNS_API_SECRET
+
 from src.libraries.database import (
     add_or_update_user,
     get_user_by_id,
@@ -19,7 +25,6 @@ from src.libraries.common.file import TempFileManager
 
 from src.libraries.assets import assets, AssetType
 
-from src.libraries.common.game.maimai import *
 
 from .tools import is_fish_else_lxns
 from .player import B50Player
@@ -204,18 +209,22 @@ async def handle_b50(message: Message):
         )
         return
 
-    player = B50Player(
-        username,
-        user_id,
-        favorite_id=favorite_id,
-        avatar_url=mix_message.avatar_url,
-    )
-
     # 获取查分器数据
     try:
         # 初始化玩家对象
-        maimai_player = MaimaiUser(id=username, user_platform=platform_id)
-        await player.enrich(maimai_player)
+        # maimai_player = MaimaiUser(id=username, user_platform=platform_id)
+        # 使用maimai.py 重构项目
+        if platform_id == FISH:
+            scores: MaimaiScores = await maimai.bests(PlayerIdentifier(username=username), provider=divingfish)
+            player = await maimai.players(PlayerIdentifier(username=username), provider=divingfish)
+        elif platform_id == LXNS:
+            qq = int(username)
+            scores: MaimaiScores = await maimai.bests(PlayerIdentifier(qq=qq), provider=lxns)
+            player = await maimai.players(PlayerIdentifier(qq=qq), provider=lxns)
+        else:
+        # 抛出异常
+            raise ValueError("无效的平台ID")
+
     except Exception as e:
         logger.error(f"获取查分器数据时出错: {e}")
         await mix_message.reply(
@@ -227,13 +236,14 @@ async def handle_b50(message: Message):
                 "如果问题仍然存在，请联系频道主寻求帮助。\n\n"
                 f"当前查分器平台: {PLATFORM_STR[platform_id]}\n"
                 f"用户名: {username}"
+                f"\n错误信息: {e}"
             ),
             use_reference=True,
         )
         return
     # 绘制和压缩图片
     try:
-        drawBest = DrawBest(player)
+        drawBest = DrawBest()
         draw = await drawBest.draw()
 
         temp_manager = TempFileManager()
@@ -256,7 +266,7 @@ async def handle_b50(message: Message):
 
     # 更新用户分数到数据库
     try:
-        update_user_score(user_id, player.user_info.rating)
+        update_user_score(user_id, player.rating)
     except DatabaseOperationError as e:
         logger.error(f"更新用户时出错: {e}")
         return
@@ -268,19 +278,17 @@ async def handle_b50(message: Message):
     await mix_message.reply(file_image=temp_file)
 
     # 回复生成成功信息
-    if generation_time <= 3:
-        time_message = "哇，一下子就查完了呢！\n"
-    elif generation_time <= 20:
+    if generation_time <= 20:
         time_message = ""
     elif generation_time <= 45:
-        time_message = "你的 B50 中有些冷门歌曲了, 所以 bot 下载了一些资源喵~\n"
+        time_message = "你的 B50 中有些冷门歌曲了, 所以 bot 下载了一些资源~\n"
     elif generation_time <= 75:
         time_message = (
-            "你的 B50 中有比较多的冷门歌曲, bot 下载了一些资源以确保完整性喵~\n"
+            "你的 B50 中有比较多的冷门歌曲, bot 下载了一些资源以确保完整性~\n"
         )
     else:
         time_message = (
-            "你的 B50 中包含了很多冷门歌曲, bot 需要花费较长时间下载资源喵~\n"
+            "你的 B50 中包含了很多冷门歌曲, bot 需要花费较长时间下载资源~\n"
         )
 
     await mix_message.reply(

@@ -1,25 +1,26 @@
 import random
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+from maimai_py import MaimaiScores, DivingFishPlayer, LXNSPlayer, ScoreExtend
+
+from config import FontPaths, VERSION
 from src.libraries.assets import assets, AssetType
 from src.libraries.common.images.alpha import (
     adjust_image_alpha,
     add_rounded_corners_to_image,
     deepen_image_color,
 )
-from src.libraries.common.images.text import (
-    draw_centered_text,
-    draw_centered_truncated_text,
-    draw_truncated_text,
-)
-
 from src.libraries.common.images.components.user_info import draw_user_info
-
-from src.libraries.common.game.maimai import SongRateType
 from .image import DrawText
-from .basic import *
-from config import FontPaths, VERSION, DEFAULT_AVATAR_URL
-from .player import B50Player, SongDifficulty
+
+TEXT_COLOR = [
+    (255, 255, 255, 255),
+    (255, 255, 255, 255),
+    (255, 255, 255, 255),
+    (255, 255, 255, 255),
+    (138, 0, 226, 255),
+]
 
 
 class Draw:
@@ -27,9 +28,9 @@ class Draw:
     def __init__(self, image: Image.Image = None) -> None:
         self._im = image
         dr = ImageDraw.Draw(self._im)
-        self._mr = DrawText(dr, FontPaths.MEIRYO)
-        self._sy = DrawText(dr, FontPaths.SIYUAN)
-        self._tb = DrawText(dr, FontPaths.TORUS_BOLD)
+        self._mr = DrawText(dr, Path(FontPaths.MEIRYO))
+        self._sy = DrawText(dr, Path(FontPaths.SIYUAN))
+        self._tb = DrawText(dr, Path(FontPaths.TORUS_BOLD))
 
         self.basic = Image.open(
             assets.get(AssetType.IMAGES, "b50_score_basic")
@@ -68,176 +69,156 @@ class Draw:
 
         alpha = 0.6
 
-        for i in range(5):
+        for j in range(5):
             img = deepen_image_color(self._diff[i], 1.5)
-            self._diff[i] = adjust_image_alpha(img, alpha)
+            self._diff[j] = adjust_image_alpha(img, alpha)
 
-    async def whiledraw(
-        self,
-        data: List[SongDifficulty],
-        best: bool,
+    async def drawing(
+            self,
+            data: list[ScoreExtend],
+            best: bool,
     ) -> None:
 
         # y为第一排纵向坐标，dy为各排间距
         dy = 170
         y = 430 if best else 1700
 
-        TEXT_COLOR = [
-            (255, 255, 255, 255),
-            (255, 255, 255, 255),
-            (255, 255, 255, 255),
-            (255, 255, 255, 255),
-            (138, 0, 226, 255),
-        ]
         x = 70
-        for num, info in enumerate(data):
+
+        for num, song in enumerate(data):
+
             if num % 5 == 0:
                 x = 70
                 y += dy if num != 0 else 0
             else:
                 x += 416
 
-            cover_path = await assets.get_async(AssetType.COVER, info.id)
+            cover_path = await assets.get_async(AssetType.COVER, song.id)
             if not cover_path:
                 cover_path = await assets.get_async(AssetType.COVER, 0)
             cover = Image.open(cover_path).resize((135, 135)).convert("RGBA")
             version = (
                 Image.open(
                     await assets.get_async(
-                        AssetType.IMAGES, f"{info.song_type.value}.png"
+                        AssetType.IMAGES, f"{song.type.value}.png"
                     )
                 )
                 .resize((55, 19))
                 .convert("RGBA")
             )
 
-            # rate s sp ss ssp sss和sss+的使用prism样式
-            if info.user_score.rate:
-                if (
-                    info.user_score.rate == SongRateType.S
-                    or info.user_score.rate == SongRateType.S_PLUS
-                    or info.user_score.rate == SongRateType.SS
-                    or info.user_score.rate == SongRateType.SS_PLUS
-                    or info.user_score.rate == SongRateType.SSS
-                    or info.user_score.rate == SongRateType.SSS_PLUS
-                ):
-                    rate = (
-                        Image.open(
-                            await assets.get_async(
-                                AssetType.PRISM, f"{info.user_score.rate.value}.png"
-                            )
+            # 绘制RATE
+            if song.rate:
+                rate_img = (
+                    Image.open(
+                        await assets.get_async(
+                            AssetType.RANK,
+                            f"{song.rate.name.lower()}.png",
                         )
-                        .resize((95, 44))
-                        .convert("RGBA")
                     )
+                    .resize((110, 44))
+                    .convert("RGBA")
+                )
 
-                    rate = deepen_image_color(rate, 2)
-
-                else:
-                    rate = (
-                        Image.open(
-                            await assets.get_async(
-                                AssetType.IMAGES,
-                                f"UI_TTR_Rank_{score_Rank_l[info.user_score.rate.value]}.png",
-                            )
-                        )
-                        .resize((110, 44))
-                        .convert("RGBA")
-                    )
-            self._im.alpha_composite(self._diff[info.level_index], (x, y))
+                self._im.alpha_composite(rate_img, (x + 150, y + 98))
+            (self
+             ._im.alpha_composite(self._diff[song.level_index.value], (x, y)))
             self._im.alpha_composite(cover, (x + 5, y + 5))
             self._im.alpha_composite(version, (x + 80, y + 141))
-            self._im.alpha_composite(rate, (x + 150, y + 98))
-            if info.user_score.fc.value:
-                fc = (
+
+            # 绘制徽章
+            if song.fc:
+                fc_img = (
                     Image.open(
                         await assets.get_async(
-                            AssetType.IMAGES,
-                            f"UI_MSS_MBase_Icon_{fcl[info.user_score.fc.value]}.png",
+                            AssetType.BADGE,
+                            f"{song.fc.name.lower()}.png",
                         )
                     )
                     .resize((45, 45))
                     .convert("RGBA")
                 )
 
-                self._im.alpha_composite(fc, (x + 246, y + 99))
-            if info.user_score.fs.value:
-                fs = (
+                self._im.alpha_composite(fc_img, (x + 246, y + 99))
+
+            if song.fs:
+                fs_img = (
                     Image.open(
                         await assets.get_async(
-                            AssetType.IMAGES,
-                            f"UI_MSS_MBase_Icon_{fsl[info.user_score.fs.value]}.png",
+                            AssetType.BADGE,
+                            f"{song.fs.name.lower()}.png",
                         )
                     )
                     .resize((45, 45))
                     .convert("RGBA")
                 )
 
-                self._im.alpha_composite(fs, (x + 291, y + 99))
+                self._im.alpha_composite(fs_img, (x + 291, y + 99))
 
-            dxnum = info.get_dx_score_num()
-
-            if dxnum:
-                self._im.alpha_composite(
-                    Image.open(
-                        await assets.get_async(
-                            AssetType.IMAGES,
-                            f"UI_GAM_Gauge_DXScoreIcon_0{dxnum}.png",
-                        )
-                    ).convert("RGBA"),
-                    (x + 335, y + 102),
-                )
+            # dxnum = score.level_dx_score
+            #
+            # if dxnum:
+            #     self._im.alpha_composite(
+            #         Image.open(
+            #             await assets.get_async(
+            #                 AssetType.IMAGES,
+            #                 f"UI_GAM_Gauge_DXScoreIcon_0{dxnum}.png",
+            #             )
+            #         ).convert("RGBA"),
+            #         (x + 335, y + 102),
+            #     )
 
             self._tb.draw(
                 x + 40,
                 y + 148,
                 20,
-                info.id,
-                TEXT_COLOR[info.level_index],
+                song.id,
+                TEXT_COLOR[song.level_index.value],
                 anchor="mm",
             )
-            title = info.title
-            if coloumWidth(title) > 19:
-                title = changeColumnWidth(title, 18) + "..."
+            title = song.title
+            if coloum_width(title) > 19:
+                title = change_column_width(title, 18) + "..."
             self._sy.draw(
-                x + 155, y + 20, 20, title, TEXT_COLOR[info.level_index], anchor="lm"
+                x + 155, y + 20, 20, title, TEXT_COLOR[song.level_index.value], anchor="lm"
             )
             self._tb.draw(
                 x + 155,
                 y + 50,
                 32,
-                f"{info.user_score.achievements:.4f}%",
-                TEXT_COLOR[info.level_index],
+                f"{song.achievements:.4f}%",
+                TEXT_COLOR[song.level_index.value],
                 anchor="lm",
             )
 
             dxsocre_text = (
-                f"{info.user_score.dx_score}/{info.dx_rating_max}"
-                if info.user_score.dx_score
-                else str(info.dx_rating_max)
+                f"{song.dx_score}/{song.level_dx_score}"
+                if song.dx_score
+                else str(song.level_dx_score)
             )
+
             self._tb.draw(
                 x + 338,
                 y + 82,
                 20,
                 dxsocre_text,
-                TEXT_COLOR[info.level_index],
+                TEXT_COLOR[song.level_index.value],
                 anchor="mm",
             )
             self._tb.draw(
                 x + 155,
                 y + 82,
                 22,
-                f"{info.level} -> {info.user_score.rating}",
-                TEXT_COLOR[info.level_index],
+                f"{song.level_value} -> {song.dx_rating}",
+                TEXT_COLOR[song.level_index.value],
                 anchor="lm",
             )
 
 
 class DrawBest(Draw):
 
-    def __init__(self, b50player: B50Player) -> None:
-
+    def __init__(self, scores: MaimaiScores, player: DivingFishPlayer | LXNSPlayer, platform_id: int,
+                 ongeki_girl_id: int) -> None:
         background_image = random.choices(
             ["b50_bg1-min.png", "b50_bg2-min.png", "b50_bg3-min.png"],
             weights=[80, 10, 10],
@@ -247,10 +228,12 @@ class DrawBest(Draw):
         super().__init__(
             Image.open(assets.get(AssetType.PRISM, background_image)).convert("RGBA")
         )
-        self.b50player = b50player
+        self.scores: MaimaiScores = scores
+        self.player: DivingFishPlayer = player
+        self.platform_id = platform_id
+        self.ongeki_gift_id = ongeki_girl_id
 
     async def draw(self) -> Image.Image:
-
         # 绘制用户信息板子
         default_plate_list = [
             await assets.get_async(AssetType.PRISM, f"p{i}-min.png")
@@ -261,25 +244,21 @@ class DrawBest(Draw):
             await assets.get_async(AssetType.PRISM, f"logo{i}.png") for i in range(1, 6)
         ]
 
-        sdrating, dxrating = sum(
-            [_.user_score.rating for _ in self.b50player.song_data_b35]
-        ), sum([_.user_score.rating for _ in self.b50player.song_data_b15])
-
         user_info_image = await draw_user_info(
-            self.b50player.user_info,
-            f"B35: {sdrating} + B15: {dxrating} = {self.b50player.user_info.rating}",
+            self.player,
+            f"B35: {self.scores.rating_b35} + B15: {self.scores.rating_b15} = {self.scores.rating}",
             random.choice(default_plate_list),
             random.choice(default_avatar_list),
         )
 
         self._im.alpha_composite(user_info_image, (500, 100))
         # 绘制徽章
-        if self.b50player.favorite_id == 0:
-            self.b50player.favorite_id = random.randint(1, 17)
+        if self.ongeki_gift_id == 0:
+            self.ongeki_gift_id = random.randint(1, 17)
 
         logo = (
             Image.open(
-                assets.get(AssetType.ONGEKI, f"ongeki{self.b50player.favorite_id}.png")
+                assets.get(AssetType.ONGEKI, f"ongeki{self.ongeki_gift_id}.png")
             )
             .resize((int(220 * 1.2), int(290 * 1.2)))
             .convert("RGBA")
@@ -313,14 +292,14 @@ class DrawBest(Draw):
             font=ImageFont.truetype(FontPaths.ZHIZI, 35),
         )
 
-        await self.whiledraw(self.b50player.song_data_b35, True)
-        await self.whiledraw(self.b50player.song_data_b15, False)
+        await self.drawing(self.scores.scores_b15, True)
+        await self.drawing(self.scores.scores_b15, False)
 
         self._im = add_rounded_corners_to_image(self._im, 35)
         return self._im
 
 
-def getCharWidth(o) -> int:
+def get_char_width(o) -> int:
     widths = [
         (126, 1),
         (159, 0),
@@ -369,18 +348,18 @@ def getCharWidth(o) -> int:
     return 1
 
 
-def coloumWidth(s: str) -> int:
+def coloum_width(s: str) -> int:
     res = 0
     for ch in s:
-        res += getCharWidth(ord(ch))
+        res += get_char_width(ord(ch))
     return res
 
 
-def changeColumnWidth(s: str, len: int) -> str:
+def change_column_width(s: str, l: int) -> str:
     res = 0
-    sList = []
+    s_list = []
     for ch in s:
-        res += getCharWidth(ord(ch))
-        if res <= len:
-            sList.append(ch)
-    return "".join(sList)
+        res += get_char_width(ord(ch))
+        if res <= l:
+            s_list.append(ch)
+    return "".join(s_list)
