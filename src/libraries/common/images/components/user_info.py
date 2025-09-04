@@ -1,15 +1,13 @@
-from typing import List, Dict, Any, Union, TYPE_CHECKING
-import random
 from io import BytesIO
-import aiohttp
 
-from src.libraries.common.game.maimai import UserInfo
-from src.libraries.assets import assets, AssetType
+import aiohttp
 from PIL import Image, ImageDraw, ImageFont
-from ..alpha import add_rounded_corners_to_image, adjust_image_alpha
-from ..text import draw_truncated_text, draw_centered_text
+from maimai_py import LXNSPlayer, DivingFishPlayer
 
 from config import FontPaths
+from src.libraries.assets import assets, AssetType
+from ..alpha import add_rounded_corners_to_image, adjust_image_alpha
+from ..text import draw_truncated_text
 
 
 async def _get_avatar_image(avatar: str, default_avatar: str) -> Image.Image:
@@ -26,26 +24,40 @@ async def _get_avatar_image(avatar: str, default_avatar: str) -> Image.Image:
 def _get_rating_image_name(rating: int) -> str:
     thresholds = [1000, 2000, 4000, 7000, 10000, 12000, 13000, 14000, 14500, 15000]
     num = next(
-        (f"{i+1:02d}" for i, threshold in enumerate(thresholds) if rating < threshold),
+        (f"{i + 1:02d}" for i, threshold in enumerate(thresholds) if rating < threshold),
         "11",
     )
     return f"UI_CMN_DXRating_{num}.png"
 
 
 async def draw_user_info(
-    userinfo: UserInfo,
-    addictional_text: str,
-    default_name_plate: str,
-    default_avatar: str,
+        _player: LXNSPlayer | DivingFishPlayer,
+        avatar_url: str,
+        additional_text: str,
+        default_name_plate: str,
+        default_avatar: str,
 ) -> Image.Image:
-
     # 获取姓名框 nameplate
-    if userinfo.nameplate_id:
-        name_plate_path = await assets.get_async(AssetType.PLATE, userinfo.nameplate_id)
-    elif default_name_plate:
+    name_image = Image.open(
+        await assets.get_async(AssetType.IMAGES, "Name.png")
+    ).convert("RGBA")
+
+    if type(_player) is LXNSPlayer:
+        player: LXNSPlayer = _player
+        name_plate_path = await assets.get_async(AssetType.PLATE, player.name_plate.id)
+        avatar_img = await _get_avatar_image(str(player.icon.id), default_avatar)
+        # 有自己的姓名框，就不做透明处理
+        if not player.name_plate.id:
+            name_image = adjust_image_alpha(name_image, 0.6)
+    elif type(_player) is DivingFishPlayer:
+        player: DivingFishPlayer = _player
         name_plate_path = default_name_plate
+        avatar_img = await _get_avatar_image(avatar_url, default_avatar)
+
+
     else:
-        raise ValueError("No nameplate provided. 没有提供姓名框。")
+        # 不支持的玩家类型
+        raise "Unsupported player type. 不支持的玩家类型。"
 
     # 使用姓名框作为主要图
     main_image = Image.open(name_plate_path).resize((1420, 230)).convert("RGBA")
@@ -58,7 +70,6 @@ async def draw_user_info(
     avatar_border_size = (214, 214)
     avatar_offset = (4, 4)
     # 获取头像
-    avatar_img = await _get_avatar_image(userinfo.avatar, default_avatar)
     avatar_img = avatar_img.convert("RGBA").resize(avatar_size)
     avatar_img = add_rounded_corners_to_image(avatar_img, 15)
     avatar_border_img = (
@@ -75,13 +86,13 @@ async def draw_user_info(
 
     dx_rating_image = (
         Image.open(
-            assets.get(AssetType.IMAGES, _get_rating_image_name(userinfo.rating))
+            assets.get(AssetType.IMAGES, _get_rating_image_name(player.rating))
         )
         .resize((300, 59))
         .convert("RGBA")
     )
 
-    rating = f"{userinfo.rating:05d}"
+    rating = f"{player.rating:05d}"
     for n, i in enumerate(rating):
         dx_rating_image.alpha_composite(
             Image.open(
@@ -96,10 +107,10 @@ async def draw_user_info(
 
     # 3.绘制友人对战阶级(class_rank)
     class_rank_base_offset = (530, 8)
-    if userinfo.class_rank:
+    if type(player) is LXNSPlayer and player.class_rank:
         class_level_img = (
             Image.open(
-                await assets.get_async(AssetType.CLASS_RANK, userinfo.class_rank)
+                await assets.get_async(AssetType.CLASS_RANK, player.class_rank)
             )
             .resize((144, 87))
             .convert("RGBA")
@@ -109,21 +120,13 @@ async def draw_user_info(
     # 4.绘制姓名框和段位(course_rank), 做透明处理
     name_base_offset = (230, 100)
 
-    name_image = Image.open(
-        await assets.get_async(AssetType.IMAGES, "Name.png")
-    ).convert("RGBA")
-
-    # 有自己的姓名框，就不做透明处理
-    if not userinfo.nameplate_id:
-        name_image = adjust_image_alpha(name_image, 0.6)
-
     # 绘制姓名
     name_draw = ImageDraw.Draw(name_image)
-    if userinfo.course_rank:
+    if type(player) is LXNSPlayer and player.course_rank:
         max_width = 310
         class_level_img = (
             Image.open(
-                await assets.get_async(AssetType.COURSE_RANK, userinfo.course_rank)
+                await assets.get_async(AssetType.COURSE_RANK, player.course_rank)
             )
             .resize((134, 55))
             .convert("RGBA")
@@ -136,7 +139,7 @@ async def draw_user_info(
     draw_truncated_text(
         name_draw,
         (12, 3),
-        userinfo.username,
+        player.nickname if type(player) is DivingFishPlayer else player.name,
         ImageFont.truetype(FontPaths.SIYUAN, 40),
         max_width,
         (0, 0, 0, 255),
@@ -155,7 +158,7 @@ async def draw_user_info(
     rainbow_draw = ImageDraw.Draw(rainbow_image)
     rainbow_draw.text(
         (227, 21),
-        addictional_text,
+        additional_text,
         (0, 0, 0, 255),
         ImageFont.truetype(FontPaths.SIYUAN, 28),
         anchor="mm",

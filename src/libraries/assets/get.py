@@ -1,7 +1,9 @@
-import time
 import json
-from pathlib import Path
+import os
+import time
 from enum import Enum
+from pathlib import Path
+
 import aiohttp
 import requests
 from botpy import logger
@@ -12,10 +14,10 @@ def common_to_lxns_songid(song_id: int) -> int:
     将普通歌曲ID转换为LXNS格式的歌曲ID。
 
     参数:
-    song_id (int): 普通歌曲ID
+        song_id (int): 普通歌曲ID
 
     返回:
-    int: LXNS格式的歌曲ID。
+        int: LXNS格式的歌曲ID。
     """
     if 10000 <= song_id < 100000:
         return song_id % 10000
@@ -24,8 +26,7 @@ def common_to_lxns_songid(song_id: int) -> int:
 
 class AssetType(Enum):
     """
-    AssetType
-    枚举类型
+    AssetType 枚举类型
     """
 
     COVER = "/assets/cover/"
@@ -45,8 +46,7 @@ class AssetType(Enum):
 
 class JSONType(Enum):
     """
-    JSONType
-    枚举类型
+    JSONType 枚举类型
     """
 
     DIVING_FISH_SONGS_INFO = "https://www.diving-fish.com/api/maimaidxprober/music_data"
@@ -61,19 +61,25 @@ class Assets:
 
     _instance = None
 
-    def __new__(
-        cls, base_url: str = None, assets_folder: str = None, proxy: str = None
-    ):
+    def __new__(cls, base_url: str = None, assets_folder: str = None, proxy: str = None):
         if cls._instance is None:
             cls._instance = super(Assets, cls).__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
-    def __init__(self, base_url: str, assets_folder: str, proxy: str = None) -> None:
+    def __init__(self, base_url: str, assets_folder: str = None, proxy: str = None) -> None:
         if self._initialized:
             return
         self.base_url = base_url
-        self.assets_folder = assets_folder
+
+        # 如果没传 assets_folder，默认用当前工作目录下的 "assets"
+        if assets_folder is None:
+            assets_folder = Path(os.getcwd()) / "static"
+        else:
+            assets_folder = Path(assets_folder)
+
+        # 统一转换为绝对路径
+        self.assets_folder = assets_folder.resolve()
         self.proxy = proxy
         self._initialized = True
 
@@ -88,12 +94,12 @@ class Assets:
             param_value = str(common_to_lxns_songid(int(param_value)))
 
         if asset_type == AssetType.IMAGES and not param_value.lower().endswith(
-            (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
+                (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
         ):
             param_value += ".png"
 
         file_name = param_value if asset_type == AssetType.IMAGES else f"{param_value}"
-        local_file_path = Path(self.assets_folder, asset_type.name.lower(), file_name)
+        local_file_path = self.assets_folder / asset_type.name.lower() / file_name
 
         if local_file_path.exists():
             logger.debug(f"[ASSETS] 资产已存在：{local_file_path}")
@@ -106,9 +112,7 @@ class Assets:
             logger.warning(f"[ASSETS] 下载文件失败：{asset_url}, 错误信息：{e}")
         return str(local_file_path)
 
-    async def get_async(
-        self, asset_type: AssetType, param_value: str, get_args=""
-    ) -> str:
+    async def get_async(self, asset_type: AssetType, param_value: str, get_args="") -> str:
         """
         获取资产 (异步)
         """
@@ -119,12 +123,12 @@ class Assets:
             param_value = str(common_to_lxns_songid(int(param_value)))
 
         if asset_type == AssetType.IMAGES and not param_value.lower().endswith(
-            (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
+                (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
         ):
             param_value += ".png"
 
         file_name = param_value if asset_type == AssetType.IMAGES else f"{param_value}"
-        local_file_path = Path(self.assets_folder, asset_type.name.lower(), file_name)
+        local_file_path = self.assets_folder / asset_type.name.lower() / file_name
 
         if local_file_path.exists():
             logger.debug(f"[ASSETS] 资产已存在：{local_file_path}")
@@ -132,9 +136,7 @@ class Assets:
 
         asset_url = f"{self.base_url}{asset_type.value}{param_value}"
         try:
-            await self.download_file_async(
-                asset_url, local_file_path, self.proxy, get_args
-            )
+            await self.download_file_async(asset_url, local_file_path, self.proxy, get_args)
         except aiohttp.ServerTimeoutError:
             logger.warning(f"[ASSETS] 下载文件超时：{asset_url}")
         return str(local_file_path)
@@ -143,9 +145,7 @@ class Assets:
         """
         获取JSON数据 (异步)
         """
-        local_file_path = Path(
-            self.assets_folder, "json", f"{json_type.name.lower()}.json"
-        )
+        local_file_path = self.assets_folder / "json" / f"{json_type.name.lower()}.json"
 
         # 检查文件是否存在以及是否过期
         if local_file_path.exists():
@@ -156,7 +156,7 @@ class Assets:
             # 如果文件在一天内未过期（86400秒=1天）
             if time_diff < 86400:
                 logger.info(f"[ASSETS] JSON数据已存在且未过期：{local_file_path}")
-                with open(local_file_path, "r") as file:
+                with open(local_file_path, "r", encoding="utf-8") as file:
                     return json.load(file)
             else:
                 logger.info(f"[ASSETS] JSON数据已过期，将重新下载：{json_type.value}")
@@ -169,30 +169,26 @@ class Assets:
                         logger.warning(f"[ASSETS] 下载JSON数据失败：{asset_url}")
                         return {}
                     content = await response.json()
-                    sava_folder = local_file_path.parent
-                    if not sava_folder.exists():
-                        sava_folder.mkdir(parents=True)
+                    save_folder = local_file_path.parent
+                    if not save_folder.exists():
+                        save_folder.mkdir(parents=True)
                     # 保存到本地文件
-                    with open(local_file_path, "w") as file:
-                        json.dump(content, file)
-                    logger.info(
-                        f"[ASSETS] 从 {asset_url} 下载并保存JSON数据到 {local_file_path}"
-                    )
+                    with open(local_file_path, "w", encoding="utf-8") as file:
+                        json.dump(content, file, ensure_ascii=False, indent=2)
+                    logger.info(f"[ASSETS] 从 {asset_url} 下载并保存JSON数据到 {local_file_path}")
                     return content
         except aiohttp.ServerTimeoutError:
             logger.warning(f"[ASSETS] 下载JSON数据超时：{asset_url}")
             return {}
 
     @staticmethod
-    def download_file(url: str, save_path: str, proxy=None, get_args=""):
+    def download_file(url: str, save_path: Path, proxy=None, get_args=""):
         """
         从URL下载文件 (同步)
         """
         logger.info(f"[ASSETS] 下载文件：{url}")
         try:
-            response = requests.get(
-                url + get_args, proxies={"http": proxy, "https": proxy}, timeout=60
-            )
+            response = requests.get(url + get_args, proxies={"http": proxy, "https": proxy}, timeout=60)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
             logger.warning(f"[ASSETS] 下载文件失败：{url}, 错误信息：{e}")
@@ -206,14 +202,12 @@ class Assets:
         logger.info(f"[ASSETS] 从 {url} 下载并保存文件到 {save_path}")
 
     @staticmethod
-    async def download_file_async(url: str, save_path: str, proxy=None, get_args=""):
+    async def download_file_async(url: str, save_path: Path, proxy=None, get_args=""):
         """
         从URL下载文件 (异步)
         """
         logger.info(f"[ASSETS] 下载文件：{url}")
-        async with aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=30)
-        ) as session:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
             async with session.get(url + get_args, proxy=proxy) as response:
                 if response.status != 200:
                     logger.warning(f"[ASSETS] 下载文件失败：{url}")

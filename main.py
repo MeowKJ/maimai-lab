@@ -1,13 +1,13 @@
 import os
+
 import botpy
 from botpy.logging import DEFAULT_FILE_HANDLER
-from src.bot import MyClient
 
 from config import DEBUG, BOT_APPID, BOT_SECRET
+from src.bot import MyClient
 
 
 def main():
-
     # 设置 bot 的 intents
     intents = botpy.Intents(public_guild_messages=True, public_messages=True)
 

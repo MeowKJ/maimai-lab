@@ -1,14 +1,15 @@
-from PIL import ImageDraw, ImageFont
 from typing import Tuple
+
+from PIL import ImageDraw, ImageFont
 
 
 def draw_centered_text(
-    draw: ImageDraw.ImageDraw,
-    position: Tuple[int, int],
-    text: str,
-    font: ImageFont.ImageFont,
-    fill: Tuple[int, int, int] = (0, 0, 0),
-    **kwargs,
+        draw: ImageDraw.ImageDraw,
+        position: Tuple[int, int],
+        text: str,
+        font: ImageFont.ImageFont,
+        fill: Tuple[int, int, int] = (0, 0, 0),
+        **kwargs,
 ) -> None:
     """
     绘制水平居中的文本。
@@ -36,13 +37,13 @@ def draw_centered_text(
 
 
 def draw_truncated_text(
-    draw: ImageDraw.ImageDraw,
-    position: Tuple[int, int],
-    text: str,
-    font: ImageFont.ImageFont,
-    max_width: int,
-    fill: Tuple[int, int, int],
-    **kwargs,
+        draw: ImageDraw.ImageDraw,
+        position: Tuple[int, int],
+        text: str,
+        font: ImageFont.ImageFont,
+        max_width: int,
+        fill: Tuple[int, int, int, int],
+        **kwargs,
 ) -> None:
     """
     绘制带省略号的文本，当文本超出指定宽度时自动截断。
@@ -53,7 +54,7 @@ def draw_truncated_text(
         text (str): 需要绘制的文本内容。
         font (ImageFont.ImageFont): 绘制文本所使用的字体对象。
         max_width (int): 文本允许的最大宽度，超出此宽度将被截断并添加省略号。
-        fill (Tuple[int, int, int]): 文本颜色，格式为 RGB 元组。
+        fill (Tuple[int, int, int, int]): 文本颜色，格式为 RGB 元组。
 
     Returns:
         None: 该函数没有返回值。
@@ -80,12 +81,12 @@ def draw_truncated_text(
 
 
 def draw_centered_truncated_text(
-    draw: ImageDraw.ImageDraw,
-    position: Tuple[int, int],
-    text: str,
-    font: ImageFont.ImageFont,
-    max_width: int,
-    fill: Tuple[int, int, int] = (0, 0, 0),
+        draw: ImageDraw.ImageDraw,
+        position: Tuple[int, int],
+        text: str,
+        font: ImageFont.ImageFont,
+        max_width: int,
+        fill: Tuple[int, int, int] = (0, 0, 0),
 ) -> None:
     """
     绘制水平居中的文本，当文本超出指定宽度时自动截断并添加省略号。

@@ -1,16 +1,15 @@
-import os
-import time
 import random
+import time
+
+import maimai_py.exceptions
+from botpy import logger
 from botpy.message import Message, GroupMessage
+from maimai_py import MaimaiScores, PlayerIdentifier
 
-
-from maimai_py import MaimaiClient, MaimaiPlates, MaimaiScores, MaimaiSongs, PlayerIdentifier, LXNSProvider, DivingFishProvider
-maimai = MaimaiClient() # 全局创建 MaimaiClient 实例
-divingfish = DivingFishProvider(developer_token="your_token_here")
-lxns = LXNSProvider(developer_token="your_token_here")
-
-from config import LXNS_API_SECRET
-
+from src.libraries.assets import assets, AssetType
+from src.libraries.common.file import TempFileManager
+from src.libraries.common.maimai import maimai, fish_provider, lxns_provider
+from src.libraries.common.message.message import MixMessage
 from src.libraries.database import (
     add_or_update_user,
     get_user_by_id,
@@ -18,19 +17,8 @@ from src.libraries.database import (
     update_user_favorite,
 )
 from src.libraries.database.exceptions import DatabaseOperationError
-
-from src.libraries.common.message.message import MixMessage
-
-from src.libraries.common.file import TempFileManager
-
-from src.libraries.assets import assets, AssetType
-
-
-from .tools import is_fish_else_lxns
-from .player import B50Player
 from .draw import DrawBest
-
-from botpy import logger
+from .tools import is_fish_else_lxns
 
 # 定义查分平台的常量
 FISH = 0
@@ -41,7 +29,6 @@ PLATFORM_STR = ["水鱼查分器", "落雪咖啡屋"]
 
 # 处理 /bind 指令的异步函数
 async def handle_bind(message: Message | GroupMessage):
-
     mix_message = MixMessage(message)
 
     user_id = mix_message.user_id
@@ -189,7 +176,6 @@ async def handle_bind(message: Message | GroupMessage):
 
 # 处理 /b50 指令的异步函数
 async def handle_b50(message: Message):
-
     mix_message = MixMessage(message)
     user_id = mix_message.user_id
 
@@ -215,15 +201,26 @@ async def handle_b50(message: Message):
         # maimai_player = MaimaiUser(id=username, user_platform=platform_id)
         # 使用maimai.py 重构项目
         if platform_id == FISH:
-            scores: MaimaiScores = await maimai.bests(PlayerIdentifier(username=username), provider=divingfish)
-            player = await maimai.players(PlayerIdentifier(username=username), provider=divingfish)
+            scores: MaimaiScores = await maimai.bests(PlayerIdentifier(username=username), provider=fish_provider)
+            player = await maimai.players(PlayerIdentifier(username=username), provider=fish_provider)
         elif platform_id == LXNS:
             qq = int(username)
-            scores: MaimaiScores = await maimai.bests(PlayerIdentifier(qq=qq), provider=lxns)
-            player = await maimai.players(PlayerIdentifier(qq=qq), provider=lxns)
+            scores: MaimaiScores = await maimai.bests(PlayerIdentifier(qq=qq), provider=lxns_provider)
+            player = await maimai.players(PlayerIdentifier(qq=qq), provider=lxns_provider)
         else:
-        # 抛出异常
+            # 抛出异常
             raise ValueError("无效的平台ID")
+    except maimai_py.exceptions.InvalidPlayerIdentifierError:
+        await mix_message.reply(
+            content=(
+                "⚠️ 查分失败：你提供的用户名或QQ号无效。\n"
+                "请检查你绑定的查分器账号是否正确，然后再尝试查分。\n"
+                "如果问题仍然存在，请联系频道主寻求帮助。\n\n"
+                f"当前查分器平台: {PLATFORM_STR[platform_id]}\n"
+                f"用户名: {username}"
+            ),
+            use_reference=True,
+        )
 
     except Exception as e:
         logger.error(f"获取查分器数据时出错: {e}")
@@ -241,28 +238,16 @@ async def handle_b50(message: Message):
             use_reference=True,
         )
         return
-    # 绘制和压缩图片
-    try:
-        drawBest = DrawBest()
-        draw = await drawBest.draw()
+        # 绘制和压缩图片
+        # 绘制图片
+    draw_best = DrawBest(scores, player, platform_id, favorite_id, mix_message.avatar_url)
+    draw = await draw_best.draw()
 
-        temp_manager = TempFileManager()
-        if mix_message.message_type == "group":
-            temp_file, _ = temp_manager.create_temp_image_file(draw, ".jpg", quality=70)
-        else:
-            temp_file, _ = temp_manager.create_temp_image_file(draw, ".jpg", quality=90)
-
-    except Exception as e:
-
-        logger.error(f"绘制或压缩图片时出错: {e}")
-        await mix_message.reply(
-            content=(
-                "⚠️ 处理图片时出错, 可能是bot被玩坏了。\n"
-                "如果这个问题持续出现，请联系频道主以获得帮助。"
-            ),
-            use_reference=True,
-        )
-        return
+    temp_manager = TempFileManager()
+    if mix_message.message_type == "group":
+        temp_file, _ = temp_manager.create_temp_image_file(draw, ".jpg", quality=70)
+    else:
+        temp_file, _ = temp_manager.create_temp_image_file(draw, ".jpg", quality=70)
 
     # 更新用户分数到数据库
     try:
@@ -275,7 +260,9 @@ async def handle_b50(message: Message):
     generation_time = time.time() - start_time
 
     # 回复压缩后的图片
-    await mix_message.reply(file_image=temp_file)
+    await mix_message.reply(
+        file_image=temp_file
+    )
 
     # 回复生成成功信息
     if generation_time <= 20:

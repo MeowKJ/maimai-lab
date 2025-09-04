@@ -7,9 +7,8 @@ from maimai_py import MaimaiScores, DivingFishPlayer, LXNSPlayer, ScoreExtend
 from config import FontPaths, VERSION
 from src.libraries.assets import assets, AssetType
 from src.libraries.common.images.alpha import (
-    adjust_image_alpha,
     add_rounded_corners_to_image,
-    deepen_image_color,
+    deepen_image_color, adjust_image_alpha,
 )
 from src.libraries.common.images.components.user_info import draw_user_info
 from .image import DrawText
@@ -67,11 +66,11 @@ class Draw:
             self.remaster,
         ]
 
-        alpha = 0.6
+        alpha = 0.8
 
-        for j in range(5):
-            img = deepen_image_color(self._diff[i], 1.5)
-            self._diff[j] = adjust_image_alpha(img, alpha)
+        for index in range(5):
+            img = deepen_image_color(self._diff[index], 1.5)
+            self._diff[index] = adjust_image_alpha(img, alpha)
 
     async def drawing(
             self,
@@ -107,22 +106,25 @@ class Draw:
                 .convert("RGBA")
             )
 
+            # 绘制底图
+            self._im.alpha_composite(self._diff[song.level_index.value], (x, y))
+
             # 绘制RATE
             if song.rate:
                 rate_img = (
                     Image.open(
                         await assets.get_async(
                             AssetType.RANK,
-                            f"{song.rate.name.lower()}.png",
+                            f"{song.rate.name.lower()}",
                         )
                     )
-                    .resize((110, 44))
+                    # 等比例缩放 256 * 120 -> 110 * 52
+                    .resize((110, 52))
                     .convert("RGBA")
                 )
+                rate_img = adjust_image_alpha(rate_img, 0.8)
+                self._im.alpha_composite(rate_img, (x + 145, y + 95))
 
-                self._im.alpha_composite(rate_img, (x + 150, y + 98))
-            (self
-             ._im.alpha_composite(self._diff[song.level_index.value], (x, y)))
             self._im.alpha_composite(cover, (x + 5, y + 5))
             self._im.alpha_composite(version, (x + 80, y + 141))
 
@@ -132,7 +134,7 @@ class Draw:
                     Image.open(
                         await assets.get_async(
                             AssetType.BADGE,
-                            f"{song.fc.name.lower()}.png",
+                            f"{song.fc.name.lower()}",
                         )
                     )
                     .resize((45, 45))
@@ -146,7 +148,7 @@ class Draw:
                     Image.open(
                         await assets.get_async(
                             AssetType.BADGE,
-                            f"{song.fs.name.lower()}.png",
+                            f"{song.fs.name.lower()}",
                         )
                     )
                     .resize((45, 45))
@@ -218,7 +220,7 @@ class Draw:
 class DrawBest(Draw):
 
     def __init__(self, scores: MaimaiScores, player: DivingFishPlayer | LXNSPlayer, platform_id: int,
-                 ongeki_girl_id: int) -> None:
+                 ongeki_girl_id: int, avatar_url: str) -> None:
         background_image = random.choices(
             ["b50_bg1-min.png", "b50_bg2-min.png", "b50_bg3-min.png"],
             weights=[80, 10, 10],
@@ -232,6 +234,7 @@ class DrawBest(Draw):
         self.player: DivingFishPlayer = player
         self.platform_id = platform_id
         self.ongeki_gift_id = ongeki_girl_id
+        self.avatar_url = avatar_url
 
     async def draw(self) -> Image.Image:
         # 绘制用户信息板子
@@ -246,6 +249,7 @@ class DrawBest(Draw):
 
         user_info_image = await draw_user_info(
             self.player,
+            self.avatar_url,
             f"B35: {self.scores.rating_b35} + B15: {self.scores.rating_b15} = {self.scores.rating}",
             random.choice(default_plate_list),
             random.choice(default_avatar_list),
@@ -292,7 +296,7 @@ class DrawBest(Draw):
             font=ImageFont.truetype(FontPaths.ZHIZI, 35),
         )
 
-        await self.drawing(self.scores.scores_b15, True)
+        await self.drawing(self.scores.scores_b35, True)
         await self.drawing(self.scores.scores_b15, False)
 
         self._im = add_rounded_corners_to_image(self._im, 35)

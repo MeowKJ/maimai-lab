@@ -1,6 +1,6 @@
+maimai-py
 pillow
 aiosqlite
-aiohttp>=3.7.4,<4
 qq-botpy
 sqlalchemy
 cryptography
@@ -11,5 +11,4 @@ pytest
 pytest-asyncio
 plotly
 kaleido
-pandas
-maimai-py
+aiohttp==3.8.5
