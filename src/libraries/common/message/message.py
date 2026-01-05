@@ -1,8 +1,9 @@
-from botpy.message import Message, GroupMessage
-from botpy.types.message import Reference
 from botpy import logger
-from src.libraries.common.file.upload import upload_to_image_server
+from botpy.message import Message, GroupMessage, DirectMessage
+from botpy.types.message import Reference
+
 from config import DEFAULT_AVATAR_URL, DEBUG
+from src.libraries.common.file.upload import upload_to_image_server
 
 
 class MixMessage:
@@ -26,6 +27,11 @@ class MixMessage:
             self.user_id = message.author.member_openid
             self.avatar_url = DEFAULT_AVATAR_URL
             self.message_type = "group"
+        elif isinstance(message, DirectMessage):
+            self.direct_message = message
+            self.user_id = message.author.id
+            self.avatar_url = message.author.avatar
+            self.message_type = "direct"
         else:
             self.guild_message = message
             self.user_id = message.author.id
@@ -35,7 +41,7 @@ class MixMessage:
             self.message_seq_id = 100
 
     async def reply(
-        self, content: str = "", file_image: str = "", use_reference: bool = False
+            self, content: str = "", file_image: str = "", use_reference: bool = False
     ) -> None:
         """回复消息，可以选择性地附带图片或使用消息引用。
 
@@ -87,6 +93,20 @@ class MixMessage:
                 )
             # 将消息序号加1
             self.message_seq_id += 1
+
+        elif self.message_type == "direct":
+            if use_reference:
+                await self.direct_message.reply(
+                    content=content,
+                    message_reference=self.message_reference,
+                )
+            else:
+                if file_image:
+                    await self.direct_message.reply(
+                        content=content, file_image=file_image
+                    )
+                else:
+                    await self.direct_message.reply(content=content)
 
     def get_args(self, command: str = "", part_index: int = 1) -> str:
         """获取命令参数，如果未找到命令则返回原始消息内容。

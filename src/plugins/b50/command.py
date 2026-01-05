@@ -294,6 +294,49 @@ async def do_nothing(message: Message):
     pass
 
 
+async def bind_qrcode(message: Message):
+    mix_message = MixMessage(message)
+    user_id = mix_message.user_id
+
+    # 尝试从数据库获取用户信息
+    try:
+        username, platform_id, score, favorite_id = get_user_by_id(user_id)
+    except Exception:
+        await mix_message.reply(
+            content=(
+                "⚠️ 你尚未绑定查分器账号。\n"
+                "请使用 /bind 指令绑定你的查分器账号，然后再尝试查分。\n"
+                "由于QQ官方限制, 频道中和Q群中的数据是独立的, 需要分别绑定。"
+            ),
+            use_reference=True,
+        )
+        return
+
+    if platform_id == LXNS:
+        await mix_message.reply(
+            content="❌ 落雪咖啡屋用户无法使用此功能。",
+            use_reference=True,
+        )
+        return
+
+    qr_code_file = await maimai.get_qrcode(PlayerIdentifier(username=username), provider=fish_provider)
+
+    if qr_code_file is None:
+        await mix_message.reply(
+            content="❌ 获取二维码失败，请稍后再试。",
+            use_reference=True,
+        )
+        return
+
+    await mix_message.reply(
+        content="📱 这是你的水鱼查分器二维码，请保存好它！\n"
+                "如果你更换了手机或浏览器，可以通过扫描此二维码重新登录。\n"
+                "注意：二维码有时间限制，请尽快使用。",
+        file_image=qr_code_file,
+        use_reference=True,
+    )
+
+
 # 定义支持的指令及其处理函数（指令名应为小写）
 COMMANDS = {
     "bind": handle_bind,

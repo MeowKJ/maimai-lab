@@ -1,10 +1,9 @@
-import os
 import importlib
+import os
 
 from botpy import Client
-from botpy.message import Message, GroupMessage
-
 from botpy import logger
+from botpy.message import Message, GroupMessage
 
 
 class MyClient(Client):
@@ -12,8 +11,10 @@ class MyClient(Client):
         super().__init__(*args, **kwargs)
         self.channel_commands = {}  # 存储频道指令
         self.group_commands = {}  # 存储群指令
+        self.direct_commands = {}  # 存储私信指令
         self.default_channel_handlers = []  # 默认频道处理函数列表
         self.default_group_handlers = []  # 默认群处理函数列表
+        self.default_direct_handlers = []
         self.load_plugins()
 
     async def on_ready(self):
@@ -35,6 +36,8 @@ class MyClient(Client):
                                 self.channel_commands[cmd_name_lower] = cmd_func
                             if command_module.COMMAND_SCOPE in ["group", "both"]:
                                 self.group_commands[cmd_name_lower] = cmd_func
+                            if command_module.COMMAND_SCOPE in ["direct", "both"]:  # 新增
+                                self.direct_commands[cmd_name_lower] = cmd_func
 
                         logger.info(
                             f"[BOT] Loaded commands from module '{module_name}': {', '.join(command_module.COMMANDS.keys())}."
@@ -50,9 +53,12 @@ class MyClient(Client):
                             self.default_group_handlers.append(
                                 command_module.DEFAULT_HANDLER
                             )
+                        if command_module.COMMAND_SCOPE in ["direct"]:  # 新增
+                            self.default_direct_handlers.append(
+                                command_module.DEFAULT_HANDLER
+                            )
 
                 except Exception as e:
-                    # 打印跟踪报错文件具体位置
                     logger.error(
                         f"[BOT] Error loading module '{module_name}': {e} in {module_path}"
                     )
@@ -68,6 +74,12 @@ class MyClient(Client):
                 await self.channel_commands[command](message)
         else:
             await self.handle_unmatched_channel_command(message)
+
+    async def on_direct_message_create(self, message):  # 完整实现
+        logger.info(
+            f"[BOT] Received direct message: {message.author.username}: {message.content}"
+        )
+        await self.handle_unmatched_direct_command(message)
 
     async def on_group_at_message_create(self, message: GroupMessage):
         logger.info(
@@ -89,5 +101,10 @@ class MyClient(Client):
 
     async def handle_unmatched_group_command(self, message):
         for handler in self.default_group_handlers:
+            if await handler(message):
+                return  # 如果某个处理函数成功处理了消息，则退出
+
+    async def handle_unmatched_direct_command(self, message):
+        for handler in self.default_direct_handlers:
             if await handler(message):
                 return  # 如果某个处理函数成功处理了消息，则退出

@@ -9,7 +9,7 @@ from src.bot import MyClient
 
 def main():
     # 设置 bot 的 intents
-    intents = botpy.Intents(public_guild_messages=True, public_messages=True)
+    intents = botpy.Intents(public_guild_messages=True, public_messages=True, direct_message=True)
 
     # 设置Bot日志文件路径
     DEFAULT_FILE_HANDLER["filename"] = os.path.join(os.getcwd(), "bot.log")
