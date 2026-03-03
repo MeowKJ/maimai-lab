@@ -5,10 +5,6 @@ qq-botpy
 sqlalchemy
 cryptography
 requests
-sqlalchemy
 python-dotenv
 pytest
 pytest-asyncio
-plotly
-kaleido
-pandas

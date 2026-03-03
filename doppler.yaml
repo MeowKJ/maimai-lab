@@ -1,0 +1,9 @@
+# Doppler CLI config — https://docs.doppler.com/docs/cli
+# Run `doppler setup` to authenticate and link your account.
+# Usage:
+#   doppler run -- pnpm dev          (web app)
+#   doppler run -- python main.py    (bot)
+
+setup:
+  project: maimai-bot-plus
+  config: dev

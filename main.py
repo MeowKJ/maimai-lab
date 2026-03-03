@@ -1,29 +1,38 @@
-import os
+from __future__ import annotations
+
+from pathlib import Path
+
 import botpy
 from botpy.logging import DEFAULT_FILE_HANDLER
-from src.bot import MyClient
 
-from config import DEBUG, BOT_APPID, BOT_SECRET
+from src.app.client import MyClient
+from src.core.settings import settings
 
 
-def main():
+def _configure_log_file() -> None:
+    log_file = Path.cwd() / "bot.log"
+    DEFAULT_FILE_HANDLER["filename"] = str(log_file)
 
-    # 设置 bot 的 intents
+
+def _validate_required_settings() -> None:
+    if not settings.bot_appid or not settings.bot_secret:
+        raise RuntimeError(
+            "BOT_APPID/BOT_SECRET is missing. Please set them in your .env file."
+        )
+
+
+def main() -> None:
+    _validate_required_settings()
+    _configure_log_file()
+
     intents = botpy.Intents(public_guild_messages=True, public_messages=True)
-
-    # 设置Bot日志文件路径
-    DEFAULT_FILE_HANDLER["filename"] = os.path.join(os.getcwd(), "bot.log")
-
-    # 创建并配置客户端
     client = MyClient(
         intents=intents,
-        is_sandbox=DEBUG,
+        is_sandbox=settings.debug,
         timeout=20,
         ext_handlers=DEFAULT_FILE_HANDLER,
     )
-
-    # Bot 启动
-    client.run(appid=BOT_APPID, secret=BOT_SECRET)
+    client.run(appid=settings.bot_appid, secret=settings.bot_secret)
 
 
 if __name__ == "__main__":

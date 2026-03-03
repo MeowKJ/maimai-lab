@@ -49,3 +49,16 @@ pytest.ini
 
 # Macos
 .DS_Store
+
+# Node monorepo
+node_modules/
+.vercel/
+apps/**/node_modules/
+apps/**/dist/
+apps/**/.next/
+
+# Env files — only *.example files are tracked
+.env.local
+.env.*.local
+apps/**/.env.local
+apps/**/.env.*.local

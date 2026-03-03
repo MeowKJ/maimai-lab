@@ -47,6 +47,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
+      - name: Inject env vars from Doppler
+        if: ${{ secrets.DOPPLER_TOKEN != '' }}
+        uses: dopplerhq/secrets-fetch-action@v1
+        with:
+          doppler-token: ${{ secrets.DOPPLER_TOKEN }}
+          inject-env-vars: true
+
       - name: Run Python tests
         run: python -m pytest -q
 
@@ -58,16 +65,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "pnpm"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Inject env vars from Doppler
+        if: ${{ secrets.DOPPLER_TOKEN != '' }}
+        uses: dopplerhq/secrets-fetch-action@v1
         with:
-          version: 10
+          doppler-token: ${{ secrets.DOPPLER_TOKEN }}
+          inject-env-vars: true
 
       - name: Build monorepo web apps
         run: |
