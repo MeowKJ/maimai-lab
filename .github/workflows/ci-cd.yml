@@ -27,7 +27,7 @@ jobs:
           python-version: "3.11"
 
       - name: Validate env templates
-        run: python scripts/env_contract.py
+        run: python apps/bot/scripts/env_contract.py
 
   python-tests:
     name: Python Tests
@@ -45,7 +45,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install -r apps/bot/requirements.txt
 
       - name: Inject env vars from Doppler
         if: ${{ secrets.DOPPLER_TOKEN != '' }}
@@ -55,7 +55,7 @@ jobs:
           inject-env-vars: true
 
       - name: Run Python tests
-        run: python -m pytest -q
+        run: cd apps/bot && python -m pytest -q
 
   web-build:
     name: Web Build
@@ -195,7 +195,7 @@ jobs:
             python3 -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt
+            python -m pip install -r apps/bot/requirements.txt
 
             if [ -n "${{ secrets.BOT_SYSTEMD_SERVICE }}" ]; then
               if sudo -n true 2>/dev/null; then

@@ -17,7 +17,8 @@ def _configure_log_file() -> None:
 def _validate_required_settings() -> None:
     if not settings.bot_appid or not settings.bot_secret:
         raise RuntimeError(
-            "BOT_APPID/BOT_SECRET is missing. Please set them in your .env file."
+            "Missing bot credentials. Set MAIMAI_BOT_APPID/MAIMAI_BOT_SECRET "
+            "(or legacy BOT_APPID/BOT_SECRET) in apps/bot/.env."
         )
 
 

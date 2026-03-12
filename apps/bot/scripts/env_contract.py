@@ -6,7 +6,7 @@ from pathlib import Path
 
 ENV_LINE_PATTERN = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=")
 
-ROOT_REQUIRED = {
+BOT_REQUIRED = {
     "MAIMAI_DEBUG",
     "MAIMAI_BOT_APPID",
     "MAIMAI_BOT_SECRET",
@@ -17,24 +17,6 @@ ROOT_REQUIRED = {
     "MAIMAI_DEFAULT_AVATAR_URL",
     "MAIMAI_DATABASE_PATH",
     "MAIMAI_TEMP_DIR",
-    "MAIMAI_IMAGE_CACHE_PORT",
-    "MAIMAI_IMAGEKIT_PUBLIC_KEY",
-    "MAIMAI_IMAGEKIT_PRIVATE_KEY",
-    "MAIMAI_IMAGEKIT_URL_ENDPOINT",
-    "MAIMAI_LEGACY_ASSET_ORIGIN",
-    "VITE_MAIMAI_LXNS_API_KEY",
-}
-
-IMAGE_CACHE_REQUIRED = {
-    "MAIMAI_IMAGE_CACHE_PORT",
-    "MAIMAI_IMAGEKIT_PUBLIC_KEY",
-    "MAIMAI_IMAGEKIT_PRIVATE_KEY",
-    "MAIMAI_IMAGEKIT_URL_ENDPOINT",
-    "MAIMAI_LEGACY_ASSET_ORIGIN",
-}
-
-RATING_REQUIRED = {
-    "VITE_MAIMAI_LXNS_API_KEY",
 }
 
 
@@ -60,11 +42,9 @@ def assert_contract(path: Path, required: set[str]) -> list[str]:
 
 
 def main() -> int:
-    project_root = Path(__file__).resolve().parents[1]
+    bot_root = Path(__file__).resolve().parents[1]
     contracts = (
-        (project_root / ".env.example", ROOT_REQUIRED),
-        (project_root / "apps" / "image-cache" / ".env.example", IMAGE_CACHE_REQUIRED),
-        (project_root / "apps" / "rating-web" / ".env.example", RATING_REQUIRED),
+        (bot_root / ".env.example", BOT_REQUIRED),
     )
 
     failed = False

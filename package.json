@@ -16,6 +16,6 @@
     "web:dev:rating": "pnpm --filter @maimai-lab/rating-web dev",
     "web:dev:tools": "pnpm --filter @maimai-lab/tools-web dev",
     "web:build:legacy": "pnpm --filter @maimai-lab/rating-web build && pnpm --filter @maimai-lab/tools-web build && pnpm --filter @maimai-lab/image-cache sync:web",
-    "ci:env": "python scripts/env_contract.py"
+    "ci:env": "python apps/bot/scripts/env_contract.py"
   }
 }
