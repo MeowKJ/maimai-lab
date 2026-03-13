@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const res = await fetch('https://www.yuzuchan.moe/api/maimaidx/maimaidxalias', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; maimai-lab)',
+        'User-Agent': 'Mozilla/5.0 (compatible; maimai-bot-plus)',
         Accept: 'application/json',
         Referer: 'https://yuzuchan.moe/',
       },

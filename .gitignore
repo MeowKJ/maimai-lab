@@ -2,6 +2,7 @@
 .idea/
 .code/
 .vscode/
+.claude/
 
 # Python files
 __pycache__/
@@ -56,6 +57,7 @@ node_modules/
 apps/**/node_modules/
 apps/**/dist/
 apps/**/.next/
+*.tsbuildinfo
 
 # Env files — only *.example files are tracked
 .env.local

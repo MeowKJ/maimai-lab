@@ -83,10 +83,10 @@ jobs:
           doppler-token: ${{ secrets.DOPPLER_TOKEN }}
           inject-env-vars: true
 
-      - name: Build monorepo web apps
+      - name: Build web app
         run: |
           pnpm install --frozen-lockfile
-          pnpm --filter @maimai-lab/web build
+          pnpm --filter @maimai-bot-plus/web build
 
   deploy-preview:
     name: Deploy Preview (Vercel)

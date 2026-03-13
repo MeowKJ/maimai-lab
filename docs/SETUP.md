@@ -1,51 +1,64 @@
 # Setup
 
-## 1. Install
+## 1. Python Bot
+
+安装依赖：
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r apps/bot/requirements.txt
 ```
 
-## 2. Configure
+配置环境变量：
+
 ```bash
-cp .env.example .env
+cp apps/bot/.env.example apps/bot/.env
 ```
-Fill required fields in `.env`:
+
+至少需要填写：
+
 - `MAIMAI_BOT_APPID`
 - `MAIMAI_BOT_SECRET`
 - `MAIMAI_LXNS_API_SECRET`
-- `MAIMAI_IMAGEKIT_PUBLIC_KEY` (for image-cache deploy)
-- `MAIMAI_IMAGEKIT_PRIVATE_KEY` (for image-cache deploy)
-- `MAIMAI_IMAGEKIT_URL_ENDPOINT` (for image-cache deploy)
 
-## 3. Run
+运行 Bot：
+
 ```bash
-python main.py
+python apps/bot/main.py
 ```
 
-## 4. Web Monorepo (optional)
-Unified web stack lives in `apps/`:
-- `apps/image-cache`
-- `apps/rating-web`
-- `apps/tools-web`
+## 2. Web
 
-Use Node.js LTS (recommended: `22.x`, see `.nvmrc`):
+切换到仓库要求的 Node 版本：
 
 ```bash
 nvm use
 ```
 
+安装依赖并配置环境变量：
+
 ```bash
-npm install
-npm run web:build
-npm run web:start
+pnpm install
+cp apps/web/.env.example apps/web/.env.local
 ```
 
-Vercel unified deployment config:
-- root [`vercel.json`](/Users/kj/Desktop/maimai-lab/vercel.json)
+本地开发：
 
-## 5. Validate env contract
 ```bash
-python scripts/env_contract.py
+pnpm dev
+```
+
+生产构建：
+
+```bash
+pnpm build
+```
+
+## 3. Validate Env Contract
+
+当前环境变量契约校验脚本只检查 Bot 模板：
+
+```bash
+python apps/bot/scripts/env_contract.py
 ```

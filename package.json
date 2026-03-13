@@ -1,21 +1,15 @@
 {
-  "name": "maimai-lab",
+  "name": "maimai-bot-plus",
   "private": true,
   "version": "1.0.0",
   "packageManager": "pnpm@10.6.1",
   "workspaces": [
-    "apps/web",
-    "apps/image-cache",
-    "apps/rating-web",
-    "apps/tools-web"
+    "apps/web"
   ],
   "scripts": {
-    "dev": "pnpm --filter @maimai-lab/web dev",
-    "build": "pnpm --filter @maimai-lab/web build",
-    "web:dev:cache": "pnpm --filter @maimai-lab/image-cache dev",
-    "web:dev:rating": "pnpm --filter @maimai-lab/rating-web dev",
-    "web:dev:tools": "pnpm --filter @maimai-lab/tools-web dev",
-    "web:build:legacy": "pnpm --filter @maimai-lab/rating-web build && pnpm --filter @maimai-lab/tools-web build && pnpm --filter @maimai-lab/image-cache sync:web",
+    "dev": "pnpm --filter @maimai-bot-plus/web dev",
+    "build": "pnpm --filter @maimai-bot-plus/web build",
+    "lint": "pnpm --filter @maimai-bot-plus/web lint",
     "ci:env": "python apps/bot/scripts/env_contract.py"
   }
 }

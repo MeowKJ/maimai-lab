@@ -5,13 +5,13 @@ Workflow file:
 
 ## Pipeline Stages
 1. `env-contract`
-   - validates env template completeness via `python scripts/env_contract.py`
+   - validates Bot env template completeness via `python apps/bot/scripts/env_contract.py`
 2. `python-tests`
-   - installs `requirements.txt`
-   - runs `python -m pytest -q`
+   - installs `apps/bot/requirements.txt`
+   - runs `cd apps/bot && python -m pytest -q`
 3. `web-build`
-   - installs root npm workspaces dependencies
-   - builds integrated web apps with `npm run ci:web`
+   - installs root pnpm dependencies
+   - builds `apps/web`
 4. `deploy-preview` (optional)
    - trigger: `pull_request`
    - condition: Vercel secrets exist
@@ -30,5 +30,5 @@ Without these secrets, deploy jobs are skipped automatically and CI still runs.
 
 ## Trigger Rules
 - `pull_request`: runs validation + tests + build (+ preview deploy when secrets exist)
-- `push` to `main`: runs validation + tests + build (+ production deploy when secrets exist)
+- `push` to `main`: runs validation + tests + build (+ production deploy and optional bot deploy when secrets exist)
 - `workflow_dispatch`: manual full run
