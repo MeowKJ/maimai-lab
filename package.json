@@ -11,5 +11,13 @@
     "build": "pnpm --filter @maimai-bot-plus/web build",
     "lint": "pnpm --filter @maimai-bot-plus/web lint",
     "ci:env": "python apps/bot/scripts/env_contract.py"
+  },
+  "pnpm": {
+    "overrides": {
+      "@hono/node-server": "^1.19.10",
+      "express-rate-limit": "^8.2.2",
+      "flatted": "^3.4.0",
+      "hono": "^4.12.7"
+    }
   }
 }
