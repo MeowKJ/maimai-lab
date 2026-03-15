@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @maimai-bot-plus/web build",
-  "outputDirectory": "apps/web/.next",
+  "buildCommand": "pnpm build",
+  "outputDirectory": ".next",
   "framework": "nextjs",
   "installCommand": "pnpm install --frozen-lockfile"
 }
