@@ -1,6 +1,6 @@
 'use client'
 
-import { use } from 'react'
+import { use, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertCircle, ArrowLeft, Download } from 'lucide-react'
@@ -10,7 +10,8 @@ import { UserCard } from '@/components/b50/UserCard'
 import { SongGrid } from '@/components/b50/SongGrid'
 import { StatsPanel } from '@/components/b50/StatsPanel'
 import { captureElement } from '@/lib/capture'
-import { useRef } from 'react'
+import { ApiError } from '@/lib/api/errors'
+import { isValidNumber } from '@/lib/api/dataProvider'
 
 export default function B50Page({
   params,
@@ -21,7 +22,33 @@ export default function B50Page({
   const decodedUsername = decodeURIComponent(username)
   const router = useRouter()
   const captureRef = useRef<HTMLDivElement>(null)
-  const { data, isLoading, isError } = useB50Data(decodedUsername)
+  const { data, isLoading, isError, error } = useB50Data(decodedUsername)
+
+  const providerText = useMemo(() => {
+    return isValidNumber(decodedUsername)
+      ? '落雪咖啡屋 (lxns.net)'
+      : '水鱼查分器 (diving-fish.com)'
+  }, [decodedUsername])
+
+  const errorText = useMemo(() => {
+    if (!isError) return null
+    if (error instanceof ApiError) {
+      if (error.code === 'NOT_FOUND') {
+        return `未找到用户 ${decodedUsername}（来源：${providerText}）`
+      }
+      if (error.code === 'UNAUTHORIZED' || error.code === 'CONFIG') {
+        return '服务端未配置或无权访问该数据源'
+      }
+      if (error.code === 'RATE_LIMITED') {
+        return '请求过于频繁，请稍后再试'
+      }
+      if (error.code === 'NETWORK') {
+        return '网络连接失败，请稍后再试'
+      }
+      return error.message || '查询失败'
+    }
+    return '查询失败'
+  }, [decodedUsername, error, isError, providerText])
 
   return (
     <main className="relative z-10 flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6">
@@ -64,8 +91,13 @@ export default function B50Page({
           >
             <AlertCircle className="w-12 h-12 text-destructive" />
             <p className="text-foreground font-medium">查询失败</p>
-            <p className="text-muted-foreground text-sm">
-              未找到用户 <strong>{decodedUsername}</strong>，请检查用户名或 QQ 号
+            <p className="text-muted-foreground text-sm text-center max-w-[520px]">
+              {errorText ?? `未找到用户 ${decodedUsername}`}
+              {error instanceof ApiError && error.status ? (
+                <span className="block mt-1 text-xs text-muted-foreground/70">
+                  {error.provider.toUpperCase()} HTTP {error.status}
+                </span>
+              ) : null}
             </p>
             <button
               onClick={() => router.push('/b50')}
@@ -110,6 +142,29 @@ export default function B50Page({
                 保存截图
               </motion.button>
             </div>
+          </motion.div>
+        )}
+
+        {/* No data but not error (should be rare) */}
+        {!data && !isLoading && !isError && (
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-24 gap-3"
+          >
+            <AlertCircle className="w-12 h-12 text-muted-foreground/50" />
+            <p className="text-foreground font-medium">暂无数据</p>
+            <p className="text-muted-foreground text-sm">
+              请输入正确的用户名或 QQ 号进行查询
+            </p>
+            <button
+              onClick={() => router.push('/b50')}
+              className="flex items-center gap-2 mt-2 text-sm text-primary hover:underline"
+            >
+              <ArrowLeft size={14} /> 返回搜索
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

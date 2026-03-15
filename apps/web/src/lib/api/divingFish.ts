@@ -3,6 +3,7 @@ import type { RawFishResponse, RawFishSong } from './fish'
 import { ApiType } from './enum'
 import EnumMapper from './enumMapper'
 import { enrichBest50Songs } from './tools'
+import { ApiError } from './errors'
 
 const API_URL = 'https://www.diving-fish.com/api/maimaidxprober/query/player'
 
@@ -35,14 +36,39 @@ function mapRawSongDataFish(rawSong: RawFishSong) {
 export async function fetchDivingFishB50(
   username: string,
   songCatalog: Record<number, import('./types').SongInfo> | null
-): Promise<Beat50ApiData | null> {
+): Promise<Beat50ApiData> {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, b50: true }),
     })
-    if (!response.ok) return null
+    if (!response.ok) {
+      let msg: string | undefined
+      try {
+        const ct = response.headers.get('content-type') ?? ''
+        if (ct.includes('application/json')) {
+          const json = (await response.json()) as { message?: string; error?: string }
+          msg = json.message ?? json.error
+        }
+      } catch {
+        // ignore
+      }
+
+      const code =
+        response.status === 400 ? 'NOT_FOUND'
+        : response.status === 401 || response.status === 403 ? 'UNAUTHORIZED'
+        : response.status === 429 ? 'RATE_LIMITED'
+        : response.status >= 500 ? 'UPSTREAM'
+        : 'UNKNOWN'
+
+      throw new ApiError({
+        provider: 'fish',
+        code,
+        status: response.status,
+        message: msg || '水鱼查分器查询失败',
+      })
+    }
 
     const rawData: RawFishResponse = await response.json()
 
@@ -75,8 +101,8 @@ export async function fetchDivingFishB50(
     }
 
     return { userData, best50SongsData: songsData }
-  } catch (error) {
-    console.error('DivingFish fetch error:', error)
-    return null
+  } catch (err) {
+    if (err instanceof ApiError) throw err
+    throw new ApiError({ provider: 'fish', code: 'NETWORK', message: '无法连接到水鱼查分器服务' })
   }
 }
