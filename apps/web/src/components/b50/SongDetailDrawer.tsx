@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import { X, Calculator as CalcIcon, Music2, Gauge, Drum, ChartSpline } from 'lucide-react'
 import type { DifficultyInfo, SongData, SongInfo, SongNotes } from '@/lib/api/types'
 import { LevelIndex, FCType, FSType, RateType, SongType } from '@/lib/api/enum'
@@ -155,7 +156,7 @@ function RowItem({ label, value }: { label: string; value: string | number }) {
 function NoteItem({ label, icon, value }: { label: string; icon: string; value: number }) {
   return (
     <div className="rounded-xl border border-white/15 bg-white/8 px-2 py-2 flex items-center gap-2">
-      <img src={icon} alt={label} className="h-5 w-5 object-contain" loading="lazy" decoding="async" />
+      <Image src={icon} alt={label} width={20} height={20} className="h-5 w-5 object-contain" unoptimized />
       <div className="min-w-0">
         <p className="text-[10px] text-foreground/50 leading-none">{label}</p>
         <p className="text-sm font-black tabular-nums text-foreground leading-tight">{value}</p>
@@ -308,17 +309,22 @@ export function SongDetailDrawer({ song, rank, isOpen, onClose }: SongDetailDraw
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-          >
-            {/* Blurred cover background */}
-            <div className="absolute inset-0 pointer-events-none">
-              <img
-                src={coverUrl} alt="" aria-hidden
-                className="w-full h-full object-cover"
-                style={{ transform: 'scale(1.6)', filter: 'blur(26px) saturate(1.7) brightness(0.42)' }}
-              />
-              <div className="absolute inset-0 bg-background/80" />
-              <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse 88% 56% at 50% 0%, ${diffColor}24, transparent 74%)` }} />
-            </div>
+	          >
+	            {/* Blurred cover background */}
+	            <div className="absolute inset-0 pointer-events-none">
+	              <Image
+	                src={coverUrl}
+	                alt=""
+	                aria-hidden
+	                fill
+	                sizes="100vw"
+	                className="object-cover"
+	                style={{ transform: 'scale(1.6)', filter: 'blur(26px) saturate(1.7) brightness(0.42)' }}
+	                unoptimized
+	              />
+	              <div className="absolute inset-0 bg-background/80" />
+	              <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse 88% 56% at 50% 0%, ${diffColor}24, transparent 74%)` }} />
+	            </div>
 
             <div className="relative z-10 flex max-h-[92dvh] flex-col">
               {/* Handle */}
@@ -344,11 +350,11 @@ export function SongDetailDrawer({ song, rank, isOpen, onClose }: SongDetailDraw
                 {/* Cover + meta row */}
                 <motion.div variants={sectionV} className="mt-2 flex gap-3">
                   <motion.div
-                    variants={coverV}
-                    className="relative h-[94px] w-[94px] shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/25 shadow-lg"
-                  >
-                    <img src={coverUrl} alt={song.title} className="h-full w-full object-cover" />
-                  </motion.div>
+	                    variants={coverV}
+	                    className="relative h-[94px] w-[94px] shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/25 shadow-lg"
+	                  >
+	                    <Image src={coverUrl} alt={song.title} fill sizes="94px" className="object-cover" unoptimized />
+	                  </motion.div>
 
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-[15px] font-bold leading-snug">{song.title}</p>
@@ -452,16 +458,21 @@ export function SongDetailDrawer({ song, rank, isOpen, onClose }: SongDetailDraw
               transition={{ duration: 0.25, ease: SPRING_EASE }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Background */}
-              <div className="absolute inset-0 pointer-events-none">
-                <img
-                  src={coverUrl} alt="" aria-hidden
-                  className="h-full w-full object-cover"
-                  style={{ transform: 'scale(1.8)', filter: 'blur(34px) saturate(1.8) brightness(0.36)' }}
-                />
-                <div className="absolute inset-0 bg-background/84" />
-                <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse 80% 50% at 50% 0%, ${diffColor}26, transparent 72%)` }} />
-              </div>
+	              {/* Background */}
+	              <div className="absolute inset-0 pointer-events-none">
+	                <Image
+	                  src={coverUrl}
+	                  alt=""
+	                  aria-hidden
+	                  fill
+	                  sizes="100vw"
+	                  className="object-cover"
+	                  style={{ transform: 'scale(1.8)', filter: 'blur(34px) saturate(1.8) brightness(0.36)' }}
+	                  unoptimized
+	                />
+	                <div className="absolute inset-0 bg-background/84" />
+	                <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse 80% 50% at 50% 0%, ${diffColor}26, transparent 72%)` }} />
+	              </div>
 
               <button
                 onClick={onClose}
@@ -481,11 +492,11 @@ export function SongDetailDrawer({ song, rank, isOpen, onClose }: SongDetailDraw
                 {/* Header: cover + meta */}
                 <div className="flex items-start gap-5">
                   <motion.div
-                    variants={coverV}
-                    className="relative h-[172px] w-[172px] shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/25 shadow-xl"
-                  >
-                    <img src={coverUrl} alt={song.title} className="h-full w-full object-cover" />
-                  </motion.div>
+	                    variants={coverV}
+	                    className="relative h-[172px] w-[172px] shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/25 shadow-xl"
+	                  >
+	                    <Image src={coverUrl} alt={song.title} fill sizes="172px" className="object-cover" unoptimized />
+	                  </motion.div>
 
                   <div className="min-w-0 flex-1">
                     <motion.div variants={sectionV} className="flex items-center gap-2 flex-wrap">
@@ -572,10 +583,10 @@ export function SongDetailDrawer({ song, rank, isOpen, onClose }: SongDetailDraw
                   variants={sectionV}
                   className="mt-5 flex items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/7 p-3.5"
                 >
-                  <div className="flex items-center gap-2 text-sm text-foreground/75">
-                    <Gauge size={15} className="text-primary" />
-                    <span>可获取的信息会尽量全部展示，缺失字段会显示为 "-"</span>
-                  </div>
+	                  <div className="flex items-center gap-2 text-sm text-foreground/75">
+	                    <Gauge size={15} className="text-primary" />
+	                    <span>可获取的信息会尽量全部展示，缺失字段会显示为 &quot;-&quot;</span>
+	                  </div>
                   <motion.button
                     onClick={openInCalculator}
                     disabled={!songInfo}

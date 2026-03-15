@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import { generateImageUrl } from '@/lib/assets'
 import { getRateImageCode } from '@/lib/ratingCode'
 import { Star } from 'lucide-react'
@@ -13,8 +14,6 @@ interface ScoreSummaryCardProps {
   starNumber: number
   isSelectedDXType: boolean
 }
-
-const STAR_COLORS = ['#9ca3af', '#4ade80', '#4ade80', '#fbbf24', '#fbbf24', '#fbbf24']
 
 export function ScoreSummaryCard({
   song,
@@ -34,11 +33,14 @@ export function ScoreSummaryCard({
       <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-md shadow-xl p-4">
         <div className="flex items-center gap-3">
           {/* Cover */}
-          <div className="w-14 h-14 rounded-xl overflow-hidden bg-muted flex-shrink-0 ring-2 ring-primary/20">
-            <img
+          <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-muted flex-shrink-0 ring-2 ring-primary/20">
+            <Image
               src={generateImageUrl(song.SongID)}
               alt={song.title}
-              className="w-full h-full object-cover"
+              fill
+              sizes="56px"
+              className="object-cover"
+              unoptimized
             />
           </div>
 
@@ -70,10 +72,13 @@ export function ScoreSummaryCard({
             >
               {finalScore.toFixed(4)}
             </motion.div>
-            <img
+            <Image
               src={`/assets/rank/${rateCode}`}
               alt={rateCode}
-              className="h-5 object-contain ml-auto mt-0.5"
+              width={60}
+              height={20}
+              className="h-5 w-auto object-contain ml-auto mt-0.5"
+              unoptimized
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
           </div>

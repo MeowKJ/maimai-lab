@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import type { UserData } from '@/lib/api/types'
 import { ApiType } from '@/lib/api/enum'
 import {
@@ -52,7 +53,10 @@ export function UserCard({ userData }: UserCardProps) {
 
   // Avatar: LXNS provides icon.id → /assets/avatar/{id}
   // DivingFish sets avatarUrl to a static fallback path
-  const avatarSrc = userData.avatarUrl || generateAvatarUrl(null)
+  const [avatarSrc, setAvatarSrc] = useState(() => userData.avatarUrl || generateAvatarUrl(null))
+  useEffect(() => {
+    setAvatarSrc(userData.avatarUrl || generateAvatarUrl(null))
+  }, [userData.avatarUrl])
 
   return (
     <motion.div
@@ -64,10 +68,13 @@ export function UserCard({ userData }: UserCardProps) {
       {/* Plate / ambient background */}
       {userData.plateId > 0 ? (
         <>
-          <img
+          <Image
             src={generatePlateUrl(userData.plateId)}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, 768px"
+            className="object-cover"
+            unoptimized
           />
           <div className="absolute inset-0 bg-black/45" />
         </>
@@ -97,15 +104,15 @@ export function UserCard({ userData }: UserCardProps) {
             whileHover={{ scale: 1.04 }}
             transition={{ type: 'spring', stiffness: 400, damping: 28 }}
           >
-            <div className="w-[76px] h-[76px] sm:w-[88px] sm:h-[88px] rounded-2xl overflow-hidden shadow-xl ring-2 ring-white/40 ring-offset-1 ring-offset-transparent">
-              <img
+            <div className="relative w-[76px] h-[76px] sm:w-[88px] sm:h-[88px] rounded-2xl overflow-hidden shadow-xl ring-2 ring-white/40 ring-offset-1 ring-offset-transparent">
+              <Image
                 src={avatarSrc}
-                onError={(e) => {
-                  e.currentTarget.onerror = null
-                  e.currentTarget.src = generateAvatarUrl(null)
-                }}
                 alt="avatar"
-                className="w-full h-full object-cover"
+                fill
+                sizes="88px"
+                className="object-cover"
+                unoptimized
+                onError={() => setAvatarSrc(generateAvatarUrl(null))}
               />
             </div>
             <div className="absolute -bottom-1.5 -right-1.5 px-2 py-[3px] rounded-full text-[10px] font-extrabold bg-black/55 backdrop-blur-sm text-white border border-white/25 leading-none">
@@ -133,18 +140,24 @@ export function UserCard({ userData }: UserCardProps) {
             {(userData.rankId > 0 || userData.classId > 0) && (
               <div className="flex items-center gap-2 mt-2">
                 {userData.rankId > 0 && (
-                  <img
+                  <Image
                     src={generateCourseRankUrl(userData.rankId)}
                     alt={`段位 ${userData.rankId}`}
-                    className="h-6 object-contain"
+                    width={96}
+                    height={24}
+                    className="h-6 w-auto object-contain"
+                    unoptimized
                     onError={(e) => { e.currentTarget.style.display = 'none' }}
                   />
                 )}
                 {userData.classId > 0 && (
-                  <img
+                  <Image
                     src={generateClassRankUrl(userData.classId)}
                     alt={`阶级 ${userData.classId}`}
-                    className="h-6 object-contain"
+                    width={96}
+                    height={24}
+                    className="h-6 w-auto object-contain"
+                    unoptimized
                     onError={(e) => { e.currentTarget.style.display = 'none' }}
                   />
                 )}

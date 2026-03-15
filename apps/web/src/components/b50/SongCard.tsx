@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import type { SongData } from '@/lib/api/types'
 import { LevelIndex, FCType, FSType, RateType, SongType } from '@/lib/api/enum'
 import { generateImageUrl } from '@/lib/assets'
@@ -175,14 +176,15 @@ export function SongCard({ song, index, rank }: SongCardProps) {
           )}
         >
           {/* ── Layer 1: Ambient blurred cover ── */}
-          <img
+          <Image
             src={coverUrl}
             alt=""
             aria-hidden
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            fill
+            sizes="(max-width: 640px) 100vw, 640px"
+            className="object-cover pointer-events-none"
             style={{ transform: 'scale(1.8)', filter: 'blur(28px) saturate(1.6) brightness(0.9)' }}
-            loading="lazy"
-            decoding="async"
+            unoptimized
           />
 
           {/* ── Layer 2: Frosted glass overlay ── */}
@@ -237,12 +239,13 @@ export function SongCard({ song, index, rank }: SongCardProps) {
 
             {/* Cover thumbnail — left */}
             <div className="relative flex-shrink-0 w-[54px] h-[54px] rounded-xl overflow-hidden shadow-md ring-1 ring-white/30">
-              <img
+              <Image
                 src={coverUrl}
                 alt={song.title}
-                className="w-full h-full object-cover"
-                loading="lazy"
-                decoding="async"
+                fill
+                sizes="54px"
+                className="object-cover"
+                unoptimized
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
               {/* Rank */}
@@ -316,12 +319,13 @@ export function SongCard({ song, index, rank }: SongCardProps) {
 
             {/* Cover thumbnail */}
             <div className="relative flex-shrink-0 w-[76px] h-[76px] rounded-xl overflow-hidden shadow-lg ring-1 ring-white/30 group-hover:ring-white/50 transition-all duration-200">
-              <img
+              <Image
                 src={coverUrl}
                 alt={song.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                loading="lazy"
-                decoding="async"
+                fill
+                sizes="76px"
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                unoptimized
               />
               {/* Bottom gradient for badges readability */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />

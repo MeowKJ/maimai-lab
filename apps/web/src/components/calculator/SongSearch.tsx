@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Loader2 } from 'lucide-react'
+import Image from 'next/image'
 import { useSongSearch } from '@/hooks/useSongSearch'
 import { generateImageUrl } from '@/lib/assets'
 import type { Song } from '@/lib/calculator/types'
@@ -123,11 +124,14 @@ export function SongSearch({ onSelectSong }: SongSearchProps) {
                     i === activeIndex ? 'bg-primary/10 text-foreground' : 'hover:bg-muted/50 text-foreground'
                   } ${i > 0 ? 'border-t border-border/50' : ''}`}
                 >
-                  <div className="w-9 h-9 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                    <img
+                  <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    <Image
                       src={generateImageUrl(song.SongID)}
                       alt={song.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="36px"
+                      className="object-cover"
+                      unoptimized
                     />
                   </div>
                   <div className="min-w-0 flex-1">
