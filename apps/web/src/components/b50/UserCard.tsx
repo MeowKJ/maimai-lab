@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import type { UserData } from '@/lib/api/types'
@@ -18,21 +18,42 @@ import {
 
 const CUTE_EMOJIS = ['🌸', '🍓', '🎀', '🍬', '💫', '🍑', '🌙', '🌺', '🎵', '🍡', '🍰', '🌷', '💕', '✨', '🍒', '🦋', '🌻', '🎊', '🍮', '🌈']
 
-function randEmojis(count: number): string {
-  return Array.from({ length: count }, () =>
-    CUTE_EMOJIS[Math.floor(Math.random() * CUTE_EMOJIS.length)]
-  ).join('')
+function fnv1a32(input: string): number {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return hash >>> 0
+}
+
+function mulberry32(seed: number) {
+  return () => {
+    let t = (seed += 0x6d2b79f5)
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function seededEmojis(seed: string, count: number): string {
+  const rnd = mulberry32(fnv1a32(seed))
+  let out = ''
+  for (let i = 0; i < count; i++) {
+    out += CUTE_EMOJIS[Math.floor(rnd() * CUTE_EMOJIS.length)]
+  }
+  return out
 }
 
 function maskQQ(qq: string): string {
-  const e = randEmojis(3)
+  const e = seededEmojis(`qq:${qq}`, 3)
   if (qq.length <= 7) return qq.slice(0, 2) + e
   return qq.slice(0, 3) + e + qq.slice(-4)
 }
 
 function maskUsername(name: string): string {
-  if (name.length <= 2) return name + randEmojis(1)
-  return name.slice(0, 2) + randEmojis(3)
+  if (name.length <= 2) return name + seededEmojis(`name:${name}`, 1)
+  return name.slice(0, 2) + seededEmojis(`name:${name}`, 3)
 }
 
 interface UserCardProps {
@@ -44,12 +65,12 @@ export function UserCard({ userData }: UserCardProps) {
   const trophyGradient = TROPHY_COLORS[userData.trophyColor] ?? TROPHY_COLORS.normal
   const isLxns = userData.api === ApiType.LXNS
 
-  // Random on every mount (= every page refresh), stable through re-renders
-  const [maskedId] = useState(() =>
-    isLxns
+  // Deterministic mask to avoid SSR/CSR hydration mismatch.
+  const maskedId = useMemo(() => {
+    return isLxns
       ? `QQ: ${maskQQ(String(userData.username))}`
       : maskUsername(String(userData.username))
-  )
+  }, [isLxns, userData.username])
 
   // Avatar: LXNS provides icon.id → /assets/avatar/{id}
   // DivingFish sets avatarUrl to a static fallback path
