@@ -82,7 +82,7 @@ type NoteKey = keyof typeof NOTE_ICON_MAP
 
 // ─── Animation variants ───────────────────────────────────────────────────────
 
-const SPRING_EASE = [0.16, 1, 0.3, 1]
+const SPRING_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 /** Stagger container — mobile gets a 0.18s delay so sheet is visible first */
 const mobileContainerV = {
