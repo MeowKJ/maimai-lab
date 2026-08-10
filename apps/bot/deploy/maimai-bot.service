@@ -1,0 +1,20 @@
+[Unit]
+Description=maimai-lab QQ Bot
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=maimai
+Group=maimai
+WorkingDirectory=/opt/maimai-lab/apps/bot
+EnvironmentFile=/etc/maimai-bot/production.env
+ExecStart=/opt/maimai-lab/.venv/bin/python /opt/maimai-lab/apps/bot/main.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

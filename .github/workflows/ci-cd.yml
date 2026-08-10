@@ -173,36 +173,64 @@ jobs:
   deploy-bot-ubuntu:
     name: Deploy QQ Bot (Ubuntu)
     runs-on: ubuntu-latest
+    environment: bot-production
     needs:
       - python-tests
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.BOT_SSH_HOST != '' && secrets.BOT_SSH_USER != '' && secrets.BOT_SSH_KEY != '' && secrets.BOT_DEPLOY_PATH != '' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    env:
+      BOT_SSH_HOST: ${{ secrets.BOT_SSH_HOST }}
+      BOT_SSH_USER: ${{ secrets.BOT_SSH_USER }}
+      BOT_SSH_KEY: ${{ secrets.BOT_SSH_KEY }}
+      BOT_SSH_PORT: ${{ secrets.BOT_SSH_PORT }}
+      BOT_DEPLOY_PATH: ${{ secrets.BOT_DEPLOY_PATH }}
+      BOT_SYSTEMD_SERVICE: ${{ secrets.BOT_SYSTEMD_SERVICE }}
+      MAIMAI_BOT_APPID: ${{ secrets.MAIMAI_BOT_APPID }}
+      MAIMAI_BOT_SECRET: ${{ secrets.MAIMAI_BOT_SECRET }}
+      MAIMAI_LXNS_API_SECRET: ${{ secrets.MAIMAI_LXNS_API_SECRET }}
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.BOT_SSH_HOST }}
-          username: ${{ secrets.BOT_SSH_USER }}
-          key: ${{ secrets.BOT_SSH_KEY }}
-          port: ${{ secrets.BOT_SSH_PORT || '22' }}
+          host: ${{ env.BOT_SSH_HOST }}
+          username: ${{ env.BOT_SSH_USER }}
+          key: ${{ env.BOT_SSH_KEY }}
+          port: ${{ env.BOT_SSH_PORT }}
+          envs: BOT_DEPLOY_PATH,BOT_SYSTEMD_SERVICE,MAIMAI_BOT_APPID,MAIMAI_BOT_SECRET,MAIMAI_LXNS_API_SECRET
           script_stop: true
           script: |
             set -e
-            cd "${{ secrets.BOT_DEPLOY_PATH }}"
+            test -n "$MAIMAI_BOT_APPID"
+            test -n "$MAIMAI_BOT_SECRET"
+            test -n "$MAIMAI_LXNS_API_SECRET"
+
+            sudo install -d -m 750 -o root -g maimai /etc/maimai-bot
+            umask 077
+            {
+              printf 'MAIMAI_DEBUG=false\n'
+              printf 'MAIMAI_BOT_APPID=%s\n' "$MAIMAI_BOT_APPID"
+              printf 'MAIMAI_BOT_SECRET=%s\n' "$MAIMAI_BOT_SECRET"
+              printf 'MAIMAI_LXNS_API_SECRET=%s\n' "$MAIMAI_LXNS_API_SECRET"
+              printf 'MAIMAI_BOT_VERSION=3.0-modern\n'
+              printf 'MAIMAI_ASSETS_URL=https://assets.lxns.net\n'
+              printf 'MAIMAI_IMAGE_SERVER_URL=http://127.0.0.1:5000\n'
+              printf 'MAIMAI_DEFAULT_AVATAR_URL=https://q1.qlogo.cn/g?b=qq&nk=0&s=640\n'
+              printf 'MAIMAI_DATABASE_PATH=/opt/maimai-lab/apps/bot/data/bot.db\n'
+              printf 'MAIMAI_TEMP_DIR=/opt/maimai-lab/apps/bot/tmp\n'
+            } | sudo tee /etc/maimai-bot/production.env > /dev/null
+            sudo chown root:maimai /etc/maimai-bot/production.env
+            sudo chmod 640 /etc/maimai-bot/production.env
+
+            cd "$BOT_DEPLOY_PATH"
             git fetch --all --prune
             git checkout main
             git pull --ff-only origin main
+            sudo install -m 644 apps/bot/deploy/maimai-bot.service /etc/systemd/system/maimai-bot.service
+            sudo systemctl daemon-reload
 
             python3 -m venv .venv
             . .venv/bin/activate
             python -m pip install --upgrade pip
             python -m pip install -r apps/bot/requirements.txt
 
-            if [ -n "${{ secrets.BOT_SYSTEMD_SERVICE }}" ]; then
-              if sudo -n true 2>/dev/null; then
-                sudo systemctl restart "${{ secrets.BOT_SYSTEMD_SERVICE }}"
-                sudo systemctl --no-pager --full status "${{ secrets.BOT_SYSTEMD_SERVICE }}" | sed -n '1,30p'
-              else
-                systemctl --user restart "${{ secrets.BOT_SYSTEMD_SERVICE }}"
-                systemctl --user --no-pager --full status "${{ secrets.BOT_SYSTEMD_SERVICE }}" | sed -n '1,30p'
-              fi
-            fi
+            sudo systemctl restart "$BOT_SYSTEMD_SERVICE"
+            sudo systemctl --no-pager --full status "$BOT_SYSTEMD_SERVICE" | sed -n '1,30p'
