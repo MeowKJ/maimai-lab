@@ -12,25 +12,13 @@ Workflow file:
 3. `web-build`
    - installs root pnpm dependencies
    - builds `apps/web`
-4. `deploy-preview` (optional)
-   - trigger: `pull_request`
-   - condition: Vercel secrets exist
-   - deploy target: preview
-5. `deploy-production` (optional)
-   - trigger: push to `main`
-   - condition: Vercel secrets exist
-   - deploy target: production
-6. `deploy-bot-ubuntu`
+4. `deploy-bot-ubuntu`
    - trigger: push to `main`, after Python tests pass
    - GitHub Environment: `bot-production`
    - deploy target: the Ubuntu Bot host through SSH, then restarts `maimai-bot.service`
 
-## Required GitHub Secrets
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
-
-Without these secrets, deploy jobs are skipped automatically and CI still runs.
+The Web application is deployed directly by Vercel. GitHub Actions validates its
+build, but does not deploy it or hold Vercel credentials.
 
 ## QQ Bot Production Environment
 
@@ -52,5 +40,5 @@ repository. The systemd unit runs the Bot as the unprivileged `maimai` user.
 
 ## Trigger Rules
 - `pull_request`: runs validation + tests + build (+ preview deploy when secrets exist)
-- `push` to `main`: runs validation + tests + build (+ production deploy and optional bot deploy when secrets exist)
-- `workflow_dispatch`: manual full run
+- `push` to `main`: runs validation + tests + build, then deploys the QQ Bot.
+- `workflow_dispatch`: manually runs the same pipeline, including a Bot deploy.

@@ -47,13 +47,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r apps/bot/requirements.txt
 
-      - name: Inject env vars from Doppler
-        if: ${{ secrets.DOPPLER_TOKEN != '' }}
-        uses: dopplerhq/secrets-fetch-action@v1
-        with:
-          doppler-token: ${{ secrets.DOPPLER_TOKEN }}
-          inject-env-vars: true
-
       - name: Run Python tests
         run: cd apps/bot && python -m pytest -q
 
@@ -76,99 +69,10 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
-      - name: Inject env vars from Doppler
-        if: ${{ secrets.DOPPLER_TOKEN != '' }}
-        uses: dopplerhq/secrets-fetch-action@v1
-        with:
-          doppler-token: ${{ secrets.DOPPLER_TOKEN }}
-          inject-env-vars: true
-
       - name: Build web app
         run: |
           pnpm install --frozen-lockfile
           pnpm --filter @maimai-bot-plus/web build
-
-  deploy-preview:
-    name: Deploy Preview (Vercel)
-    runs-on: ubuntu-latest
-    needs:
-      - python-tests
-      - web-build
-    if: ${{ github.event_name == 'pull_request' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != '' }}
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Pull Vercel project settings (preview)
-        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
-
-      - name: Build deployment artifact (preview)
-        run: vercel build --token="$VERCEL_TOKEN"
-
-      - name: Deploy preview
-        run: vercel deploy --prebuilt --token="$VERCEL_TOKEN"
-
-  deploy-production:
-    name: Deploy Production (Vercel)
-    runs-on: ubuntu-latest
-    needs:
-      - python-tests
-      - web-build
-    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != '' }}
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Pull Vercel project settings (production)
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-
-      - name: Build deployment artifact (production)
-        run: vercel build --prod --token="$VERCEL_TOKEN"
-
-      - name: Deploy production
-        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
 
   deploy-bot-ubuntu:
     name: Deploy QQ Bot (Ubuntu)
@@ -176,7 +80,7 @@ jobs:
     environment: bot-production
     needs:
       - python-tests
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     env:
       BOT_SSH_HOST: ${{ secrets.BOT_SSH_HOST }}
       BOT_SSH_USER: ${{ secrets.BOT_SSH_USER }}
