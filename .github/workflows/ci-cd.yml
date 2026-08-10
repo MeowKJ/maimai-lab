@@ -128,7 +128,7 @@ jobs:
             git fetch --all --prune
             git checkout main
             git pull --ff-only origin main
-            sudo install -m 644 apps/bot/deploy/maimai-bot.service /etc/systemd/system/maimai-bot.service
+            sudo install -m 644 "$BOT_DEPLOY_PATH/apps/bot/deploy/maimai-bot.service" /etc/systemd/system/maimai-bot.service
             sudo systemctl daemon-reload
 
             python3 -m venv .venv
