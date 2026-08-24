@@ -32,12 +32,7 @@ Bot 仍兼容一组旧变量名，例如 `BOT_APPID`、`BOT_SECRET`、`LXNS_API_
 
 - `MAIMAI_LXNS_API_KEY`
 - `NEXT_PUBLIC_MAIMAI_LXNS_API_KEY`
-- `MAIMAI_IMAGEKIT_PUBLIC_KEY`
-- `MAIMAI_IMAGEKIT_PRIVATE_KEY`
-- `MAIMAI_IMAGEKIT_URL_ENDPOINT`
-- `MAIMAI_LEGACY_ASSET_ORIGIN`
-
-其中 `NEXT_PUBLIC_*` 变量会暴露到浏览器，优先使用服务端变量。
+其中 `NEXT_PUBLIC_*` 变量会暴露到浏览器，优先使用服务端变量。图片素材统一经 LXNS CDN 获取，不再配置 ImageKit 或旧素材源。
 
 ## Contract Validation
 
